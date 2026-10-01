@@ -1,0 +1,1228 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>C-QUIZ 3D</title>
+
+<style>
+*{
+    box-sizing:border-box;
+    margin:0;
+    padding:0;
+}
+
+body{
+    min-height:100vh;
+    overflow:hidden;
+    font-family:Arial,sans-serif;
+    background:#020712;
+    color:white;
+}
+
+/* ================= 3D BACKGROUND ================= */
+
+.scene{
+    position:fixed;
+    inset:0;
+    perspective:900px;
+    overflow:hidden;
+    z-index:0;
+}
+
+.grid{
+    position:absolute;
+    width:200%;
+    height:200%;
+    left:-50%;
+    top:35%;
+    transform:rotateX(65deg);
+    background:
+        linear-gradient(rgba(0,255,255,.12) 1px,transparent 1px),
+        linear-gradient(90deg,rgba(0,255,255,.12) 1px,transparent 1px);
+    background-size:60px 60px;
+    animation:gridMove 4s linear infinite;
+}
+
+@keyframes gridMove{
+    from{
+        transform:rotateX(65deg) translateY(0);
+    }
+    to{
+        transform:rotateX(65deg) translateY(60px);
+    }
+}
+
+.orb{
+    position:absolute;
+    border-radius:50%;
+    filter:blur(4px);
+    animation:float 5s ease-in-out infinite;
+}
+
+.orb1{
+    width:180px;
+    height:180px;
+    background:#00ffff33;
+    top:10%;
+    left:5%;
+}
+
+.orb2{
+    width:250px;
+    height:250px;
+    background:#7c00ff33;
+    right:5%;
+    bottom:5%;
+    animation-delay:1s;
+}
+
+@keyframes float{
+    50%{
+        transform:translateY(-40px) scale(1.1);
+    }
+}
+
+/* ================= GAME ================= */
+
+.game{
+    position:relative;
+    z-index:5;
+    width:min(1000px,94%);
+    margin:auto;
+    padding-top:20px;
+}
+
+/* ================= LOGO ================= */
+
+.logo{
+    text-align:center;
+    margin-bottom:12px;
+}
+
+.logo h1{
+    font-family:monospace;
+    font-size:clamp(32px,7vw,70px);
+    color:#00ffff;
+    text-shadow:
+        0 0 8px #00ffff,
+        0 0 25px #00ffff,
+        0 0 50px #0066ff;
+    animation:logoPulse 2s infinite;
+}
+
+.logo span{
+    color:#8cff00;
+}
+
+.logo p{
+    font-size:12px;
+    letter-spacing:5px;
+    color:#aaa;
+}
+
+@keyframes logoPulse{
+    50%{
+        transform:scale(1.04);
+        text-shadow:
+            0 0 15px #00ffff,
+            0 0 40px #00ffff;
+    }
+}
+
+/* ================= STATS ================= */
+
+.stats{
+    display:flex;
+    justify-content:space-between;
+    gap:10px;
+    margin-bottom:15px;
+}
+
+.stat{
+    flex:1;
+    background:rgba(5,20,40,.85);
+    border:1px solid #00ffff55;
+    border-radius:12px;
+    padding:10px;
+    text-align:center;
+    box-shadow:0 0 15px #00ffff18;
+}
+
+.stat small{
+    color:#888;
+    display:block;
+}
+
+.stat b{
+    font-size:22px;
+    color:#00ffff;
+}
+
+/* ================= CARD ================= */
+
+.card{
+    background:rgba(4,14,30,.94);
+    border:1px solid #00ffff66;
+    border-radius:20px;
+    padding:25px;
+    box-shadow:
+        0 0 25px #00ffff18,
+        inset 0 0 30px #001d2e;
+    transform-style:preserve-3d;
+    transition:.3s;
+}
+
+.question-number{
+    color:#00ffff;
+    font-size:14px;
+    margin-bottom:10px;
+}
+
+#question{
+    font-size:clamp(20px,4vw,32px);
+    margin-bottom:25px;
+    line-height:1.3;
+}
+
+/* ================= OPTIONS ================= */
+
+.options{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:15px;
+}
+
+.option{
+    min-height:65px;
+    border:1px solid #008cff88;
+    border-radius:12px;
+    background:linear-gradient(135deg,#071c35,#092d4b);
+    color:white;
+    font-size:17px;
+    cursor:pointer;
+    transition:.2s;
+    position:relative;
+    overflow:hidden;
+}
+
+.option:hover{
+    transform:translateY(-5px) rotateX(5deg);
+    border-color:#00ffff;
+    box-shadow:0 0 20px #00ffff55;
+}
+
+.option:disabled{
+    cursor:not-allowed;
+}
+
+.option::before{
+    content:"";
+    position:absolute;
+    left:0;
+    top:0;
+    width:5px;
+    height:100%;
+    background:#00ffff;
+}
+
+.correct{
+    background:#064b28 !important;
+    border-color:#00ff77 !important;
+    box-shadow:0 0 25px #00ff7755;
+}
+
+.wrong{
+    background:#5a1018 !important;
+    border-color:#ff3344 !important;
+    box-shadow:0 0 25px #ff334455;
+}
+
+/* ================= TIMER ================= */
+
+.timer{
+    height:8px;
+    background:#111;
+    border-radius:20px;
+    margin:20px 0;
+    overflow:hidden;
+}
+
+#timerBar{
+    height:100%;
+    width:100%;
+    background:linear-gradient(90deg,#00ffcc,#00aaff);
+    transition:width 1s linear;
+}
+
+/* ================= FEEDBACK ================= */
+
+#feedback{
+    text-align:center;
+    min-height:30px;
+    margin-top:15px;
+    font-size:20px;
+    font-weight:bold;
+}
+
+/* ================= RESULT ================= */
+
+#result{
+    display:none;
+    text-align:center;
+    padding:35px 20px;
+}
+
+.trophy{
+    font-size:70px;
+    animation:trophy 1.5s infinite alternate;
+}
+
+@keyframes trophy{
+    to{
+        transform:translateY(-15px) rotate(5deg);
+    }
+}
+
+.final-score{
+    font-size:60px;
+    color:#00ffff;
+    text-shadow:0 0 25px #00ffff;
+    margin:15px;
+}
+
+.restart{
+    padding:14px 35px;
+    border:0;
+    border-radius:30px;
+    background:linear-gradient(90deg,#00ffff,#7c00ff);
+    color:white;
+    font-size:18px;
+    font-weight:bold;
+    cursor:pointer;
+    box-shadow:0 0 25px #00ffff55;
+    transition:.2s;
+}
+
+.restart:hover{
+    transform:scale(1.05);
+}
+
+.restart:active{
+    transform:scale(.95);
+}
+
+/* ================= MOBILE ================= */
+
+@media(max-width:650px){
+
+    body{
+        overflow:auto;
+    }
+
+    .game{
+        padding-top:12px;
+        padding-bottom:20px;
+    }
+
+    .options{
+        grid-template-columns:1fr;
+    }
+
+    .stats{
+        gap:5px;
+    }
+
+    .stat{
+        padding:7px 3px;
+    }
+
+    .stat small{
+        font-size:9px;
+    }
+
+    .stat b{
+        font-size:17px;
+    }
+
+    .card{
+        padding:18px;
+    }
+
+    .option{
+        min-height:58px;
+        font-size:15px;
+    }
+
+    .logo h1{
+        font-size:35px;
+    }
+
+    .logo p{
+        font-size:9px;
+        letter-spacing:3px;
+    }
+}
+</style>
+</head>
+
+<body>
+
+<!-- ================= BACKGROUND ================= -->
+
+<div class="scene">
+    <div class="grid"></div>
+    <div class="orb orb1"></div>
+    <div class="orb orb2"></div>
+</div>
+
+<!-- ================= GAME ================= -->
+
+<div class="game">
+
+    <!-- LOGO -->
+
+    <div class="logo">
+        <h1>&lt;/ <span>C_QUIZ</span> &gt;</h1>
+        <p>CODE • THINK • WIN</p>
+    </div>
+
+    <!-- STATS -->
+
+    <div class="stats">
+
+        <div class="stat">
+            <small>POINTS</small>
+            <b id="score">0</b>
+        </div>
+
+        <div class="stat">
+            <small>QUESTION</small>
+            <b id="count">1/10</b>
+        </div>
+
+        <div class="stat">
+            <small>LIVES</small>
+            <b id="lives">♥ ♥ ♥</b>
+        </div>
+
+        <div class="stat">
+            <small>TIME</small>
+            <b id="time">15</b>
+        </div>
+
+    </div>
+
+    <!-- CARD -->
+
+    <div class="card">
+
+        <!-- QUIZ -->
+
+        <div id="quiz">
+
+            <div class="question-number">
+                C PROGRAMMING CHALLENGE
+            </div>
+
+            <h2 id="question"></h2>
+
+            <div class="timer">
+                <div id="timerBar"></div>
+            </div>
+
+            <div class="options" id="options"></div>
+
+            <div id="feedback"></div>
+
+        </div>
+
+        <!-- RESULT -->
+
+        <div id="result">
+
+            <div class="trophy">
+                🏆
+            </div>
+
+            <h1>MISSION COMPLETE</h1>
+
+            <p>Your C Programming Score</p>
+
+            <div class="final-score">
+                <span id="finalScore">0</span>
+            </div>
+
+            <p>
+                Best Score:
+                <b id="bestScore">0</b>
+            </p>
+
+            <br>
+
+            <p id="rank"></p>
+
+            <br>
+
+            <!-- PLAY AGAIN -->
+
+            <button
+                class="restart"
+                onclick="restartGame()">
+                ↻ PLAY AGAIN
+            </button>
+
+        </div>
+
+    </div>
+
+</div>
+
+<script>
+
+/* ==================================================
+   C QUIZ QUESTIONS
+================================================== */
+
+const questions = [
+
+{
+    q:"Which function is the starting point of a C program?",
+    options:[
+        "start()",
+        "main()",
+        "run()",
+        "begin()"
+    ],
+    answer:1
+},
+
+{
+    q:"Which header file is used for printf()?",
+    options:[
+        "math.h",
+        "string.h",
+        "stdio.h",
+        "stdlib.h"
+    ],
+    answer:2
+},
+
+{
+    q:"Which data type stores an integer?",
+    options:[
+        "float",
+        "char",
+        "int",
+        "double"
+    ],
+    answer:2
+},
+
+{
+    q:"Which symbol ends a C statement?",
+    options:[
+        ".",
+        ":",
+        ";",
+        ","
+    ],
+    answer:2
+},
+
+{
+    q:"Which operator checks equality?",
+    options:[
+        "=",
+        "==",
+        "!=",
+        "<="
+    ],
+    answer:1
+},
+
+{
+    q:"Which loop is commonly used when the number of repetitions is known?",
+    options:[
+        "if",
+        "for",
+        "switch",
+        "goto"
+    ],
+    answer:1
+},
+
+{
+    q:"Which operator gives the remainder?",
+    options:[
+        "/",
+        "%",
+        "*",
+        "+"
+    ],
+    answer:1
+},
+
+{
+    q:"Which symbol starts a single-line comment?",
+    options:[
+        "//",
+        "/*",
+        "#",
+        "--"
+    ],
+    answer:0
+},
+
+{
+    q:"Which keyword is used to make a constant variable?",
+    options:[
+        "fixed",
+        "const",
+        "constant",
+        "static"
+    ],
+    answer:1
+},
+
+{
+    q:"Which format specifier is used for an integer in printf()?",
+    options:[
+        "%f",
+        "%c",
+        "%d",
+        "%s"
+    ],
+    answer:2
+},
+
+{
+    q:"Which keyword is used to return a value from a function?",
+    options:[
+        "break",
+        "return",
+        "exit",
+        "send"
+    ],
+    answer:1
+},
+
+{
+    q:"Which operator is used for logical AND?",
+    options:[
+        "&",
+        "&&",
+        "||",
+        "!"
+    ],
+    answer:1
+},
+
+{
+    q:"Which operator is used for logical OR?",
+    options:[
+        "&&",
+        "|",
+        "||",
+        "!"
+    ],
+    answer:2
+},
+
+{
+    q:"Which data type stores a single character?",
+    options:[
+        "char",
+        "string",
+        "character",
+        "text"
+    ],
+    answer:0
+},
+
+{
+    q:"Which statement is used to make a decision?",
+    options:[
+        "if",
+        "print",
+        "scan",
+        "include"
+    ],
+    answer:0
+},
+
+{
+    q:"Which function is commonly used to take input in C?",
+    options:[
+        "printf()",
+        "input()",
+        "scanf()",
+        "read()"
+    ],
+    answer:2
+},
+
+{
+    q:"Which symbol is used before a pointer variable?",
+    options:[
+        "&",
+        "*",
+        "#",
+        "%"
+    ],
+    answer:1
+},
+
+{
+    q:"Which operator gives the address of a variable?",
+    options:[
+        "*",
+        "&",
+        "@",
+        "$"
+    ],
+    answer:1
+},
+
+{
+    q:"Which loop executes its body at least once?",
+    options:[
+        "for",
+        "while",
+        "do-while",
+        "if"
+    ],
+    answer:2
+},
+
+{
+    q:"Which keyword is used to stop a loop?",
+    options:[
+        "stop",
+        "break",
+        "end",
+        "close"
+    ],
+    answer:1
+}
+
+];
+
+
+/* ==================================================
+   GAME VARIABLES
+================================================== */
+
+let current = 0;
+let score = 0;
+let lives = 3;
+let time = 15;
+let timer = null;
+let locked = false;
+let bestScore = 0;
+
+let quizQuestions = [];
+
+
+/* ==================================================
+   ELEMENTS
+================================================== */
+
+const question =
+    document.getElementById("question");
+
+const options =
+    document.getElementById("options");
+
+const scoreText =
+    document.getElementById("score");
+
+const countText =
+    document.getElementById("count");
+
+const livesText =
+    document.getElementById("lives");
+
+const timeText =
+    document.getElementById("time");
+
+const feedback =
+    document.getElementById("feedback");
+
+const timerBar =
+    document.getElementById("timerBar");
+
+const finalScore =
+    document.getElementById("finalScore");
+
+const rankText =
+    document.getElementById("rank");
+
+const bestScoreText =
+    document.getElementById("bestScore");
+
+
+/* ==================================================
+   SHUFFLE QUESTIONS
+================================================== */
+
+function shuffle(array){
+
+    return [...array].sort(
+        () => Math.random() - 0.5
+    );
+
+}
+
+
+/* ==================================================
+   START NEW GAME
+================================================== */
+
+function startNewGame(){
+
+    current = 0;
+    score = 0;
+    lives = 3;
+    time = 15;
+    locked = false;
+
+    clearInterval(timer);
+
+    // Randomize questions
+    quizQuestions =
+        shuffle(questions).slice(0,10);
+
+    // Reset display
+
+    scoreText.textContent = "0";
+
+    countText.textContent =
+        "1/" + quizQuestions.length;
+
+    livesText.textContent =
+        "♥ ♥ ♥";
+
+    timeText.textContent = "15";
+
+    timeText.style.color =
+        "#00ffff";
+
+    timerBar.style.width =
+        "100%";
+
+    timerBar.style.background =
+        "linear-gradient(90deg,#00ffcc,#00aaff)";
+
+    feedback.textContent = "";
+
+    document.getElementById("quiz")
+        .style.display = "block";
+
+    document.getElementById("result")
+        .style.display = "none";
+
+    loadQuestion();
+}
+
+
+/* ==================================================
+   LOAD QUESTION
+================================================== */
+
+function loadQuestion(){
+
+    clearInterval(timer);
+
+    locked = false;
+
+    feedback.textContent = "";
+
+    time = 15;
+
+    timeText.textContent = time;
+
+    timeText.style.color =
+        "#00ffff";
+
+    timerBar.style.width =
+        "100%";
+
+    timerBar.style.background =
+        "linear-gradient(90deg,#00ffcc,#00aaff)";
+
+    countText.textContent =
+        (current + 1) +
+        "/" +
+        quizQuestions.length;
+
+    const q =
+        quizQuestions[current];
+
+    question.textContent =
+        q.q;
+
+    options.innerHTML = "";
+
+    q.options.forEach(
+        (option,index)=>{
+
+            const button =
+                document.createElement("button");
+
+            button.className =
+                "option";
+
+            button.textContent =
+                String.fromCharCode(65 + index) +
+                "   " +
+                option;
+
+            button.onclick =
+                () => checkAnswer(
+                    index,
+                    button
+                );
+
+            options.appendChild(button);
+
+        }
+    );
+
+    startTimer();
+}
+
+
+/* ==================================================
+   TIMER
+================================================== */
+
+function startTimer(){
+
+    clearInterval(timer);
+
+    timer =
+        setInterval(()=>{
+
+            time--;
+
+            timeText.textContent =
+                time;
+
+            timerBar.style.width =
+                (time / 15 * 100) +
+                "%";
+
+            if(time <= 5){
+
+                timeText.style.color =
+                    "#ff3344";
+
+                timerBar.style.background =
+                    "#ff3344";
+            }
+
+            if(time <= 0){
+
+                clearInterval(timer);
+
+                if(locked) return;
+
+                locked = true;
+
+                feedback.textContent =
+                    "⏰ TIME UP!";
+
+                feedback.style.color =
+                    "#ffaa00";
+
+                lives--;
+
+                updateLives();
+
+                lockButtons();
+
+                setTimeout(
+                    nextQuestion,
+                    1000
+                );
+
+            }
+
+        },1000);
+}
+
+
+/* ==================================================
+   CHECK ANSWER
+================================================== */
+
+function checkAnswer(index,button){
+
+    if(locked) return;
+
+    locked = true;
+
+    clearInterval(timer);
+
+    const correct =
+        quizQuestions[current].answer;
+
+    if(index === correct){
+
+        score += 10;
+
+        button.classList.add(
+            "correct"
+        );
+
+        feedback.textContent =
+            "✓ CORRECT! +10 POINTS";
+
+        feedback.style.color =
+            "#00ff77";
+
+        scoreText.textContent =
+            score;
+
+        // Score animation
+
+        scoreText.animate(
+            [
+                {
+                    transform:"scale(1)"
+                },
+                {
+                    transform:"scale(1.6)"
+                },
+                {
+                    transform:"scale(1)"
+                }
+            ],
+            {
+                duration:400
+            }
+        );
+
+    }
+
+    else{
+
+        button.classList.add(
+            "wrong"
+        );
+
+        feedback.textContent =
+            "✗ WRONG ANSWER";
+
+        feedback.style.color =
+            "#ff3344";
+
+        lives--;
+
+        updateLives();
+
+        // Card shake
+
+        document
+            .querySelector(".card")
+            .animate(
+                [
+                    {
+                        transform:
+                        "translateX(0)"
+                    },
+                    {
+                        transform:
+                        "translateX(-12px)"
+                    },
+                    {
+                        transform:
+                        "translateX(12px)"
+                    },
+                    {
+                        transform:
+                        "translateX(0)"
+                    }
+                ],
+                {
+                    duration:300
+                }
+            );
+
+        // Show correct answer
+
+        const allButtons =
+            document.querySelectorAll(
+                ".option"
+            );
+
+        if(allButtons[correct]){
+            allButtons[correct]
+                .classList.add(
+                    "correct"
+                );
+        }
+
+    }
+
+    lockButtons();
+
+    setTimeout(
+        nextQuestion,
+        1200
+    );
+}
+
+
+/* ==================================================
+   LOCK BUTTONS
+================================================== */
+
+function lockButtons(){
+
+    document
+        .querySelectorAll(".option")
+        .forEach(button=>{
+
+            button.disabled = true;
+
+        });
+}
+
+
+/* ==================================================
+   UPDATE LIVES
+================================================== */
+
+function updateLives(){
+
+    if(lives >= 3){
+
+        livesText.textContent =
+            "♥ ♥ ♥";
+
+    }
+    else if(lives === 2){
+
+        livesText.textContent =
+            "♥ ♥ ♡";
+
+    }
+    else if(lives === 1){
+
+        livesText.textContent =
+            "♥ ♡ ♡";
+
+    }
+    else{
+
+        livesText.textContent =
+            "♡ ♡ ♡";
+
+    }
+}
+
+
+/* ==================================================
+   NEXT QUESTION
+================================================== */
+
+function nextQuestion(){
+
+    if(lives <= 0){
+
+        endGame();
+
+        return;
+    }
+
+    current++;
+
+    if(current >= quizQuestions.length){
+
+        endGame();
+
+        return;
+    }
+
+    loadQuestion();
+}
+
+
+/* ==================================================
+   GET RANK
+================================================== */
+
+function getRank(){
+
+    if(score >= 90){
+
+        return "💻 C MASTER";
+
+    }
+    else if(score >= 70){
+
+        return "🔥 CODE WARRIOR";
+
+    }
+    else if(score >= 50){
+
+        return "⚡ C EXPLORER";
+
+    }
+    else{
+
+        return "🚀 KEEP CODING";
+
+    }
+}
+
+
+/* ==================================================
+   END GAME
+================================================== */
+
+function endGame(){
+
+    clearInterval(timer);
+
+    document.getElementById("quiz")
+        .style.display = "none";
+
+    document.getElementById("result")
+        .style.display = "block";
+
+    finalScore.textContent = score;
+
+    if(score > bestScore){
+        bestScore = score;
+    }
+
+    bestScoreText.textContent = bestScore;
+
+    rankText.textContent = getRank();
+}
+
+
+/* ==================================================
+   RESTART GAME
+================================================== */
+
+function restartGame(){
+
+    startNewGame();
+
+}
+
+
+/* ==================================================
+   INIT
+================================================== */
+
+startNewGame();
+
+</script>
+
+</body>
+</html>
